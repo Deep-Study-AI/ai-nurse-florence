@@ -1,0 +1,22 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "on_failure"
+startCommand = "/app/start-railway.sh"
+
+# Persistent volume for drug database
+# Database persists across deployments and is only rebuilt:
+# 1. On first deployment (when volume is empty)
+# 2. Monthly via cron job
+# This eliminates the 2-minute database rebuild on every deployment
+# IMPORTANT: Mount at /app/data NOT /app to avoid overwriting frontend build
+[[deploy.volumes]]
+mountPath = "/app/data"
+
+[environments.development]
+variables = { PORT = "8080" }
+
+[environments.production]
+variables = { PORT = "8080" }

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>AI Nurse Florence - Free Drug Interaction Checker</title>
+    <meta name="title" content="AI Nurse Florence - Free Drug Interaction Checker">
+    <meta name="description" content="Free drug interaction checker. No login required. Check medication interactions instantly. Helping fill the gap from the discontinued NIH Drug Interaction API.">
+    <meta name="keywords" content="drug interaction checker, medication interactions, free drug checker, NIH drug API, medication safety, drug interactions, clinical decision support, healthcare tools, pharmacy tools, patient safety">
+    <meta name="author" content="AI Nurse Florence">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ai-nurse-florence-development.up.railway.app/">
+    <meta property="og:title" content="AI Nurse Florence - Free Drug Interaction Checker">
+    <meta property="og:description" content="Free drug interaction checker. No login required. Check medication interactions instantly. Helping fill the gap from the discontinued NIH Drug Interaction API.">
+    <meta property="og:site_name" content="AI Nurse Florence">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://ai-nurse-florence-development.up.railway.app/">
+    <meta property="twitter:title" content="AI Nurse Florence - Free Drug Interaction Checker">
+    <meta property="twitter:description" content="Free drug interaction checker. No login required. Check medication interactions instantly.">
+
+    <!-- Additional SEO -->
+    <link rel="canonical" href="https://ai-nurse-florence-development.up.railway.app/">
+    <meta name="theme-color" content="#2563EB">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 50%, #F3E8FF 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 3rem 0;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #1E40AF;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            color: #6B7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            color: #9CA3AF;
+        }
+
+        .hero-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            margin: 2rem 0;
+            border: 1px solid #DBEAFE;
+        }
+
+        .icon-circle {
+            display: inline-block;
+            background: #DBEAFE;
+            border-radius: 50%;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .icon-circle i {
+            font-size: 3rem;
+            color: #2563EB;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #111827;
+            margin-bottom: 1rem;
+        }
+
+        .hero-description {
+            font-size: 1.2rem;
+            color: #6B7280;
+            margin-bottom: 2rem;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .feature {
+            text-align: center;
+        }
+
+        .feature i {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature i.fa-check-circle { color: #10B981; }
+        .feature i.fa-database { color: #2563EB; }
+        .feature i.fa-shield-alt { color: #8B5CF6; }
+
+        .feature-title {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.25rem;
+        }
+
+        .feature-text {
+            font-size: 0.9rem;
+            color: #6B7280;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #2563EB;
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 600;
+            transition: background 0.3s;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .cta-button:hover {
+            background: #1E40AF;
+        }
+
+        .mission {
+            background: #EFF6FF;
+            border-left: 4px solid #2563EB;
+            padding: 2rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin: 2rem 0;
+        }
+
+        .mission h3 {
+            color: #1E40AF;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .mission p {
+            color: #1E40AF;
+            margin-bottom: 1rem;
+        }
+
+        footer {
+            background: #1F2937;
+            color: #9CA3AF;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        footer p {
+            margin: 0.5rem 0;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .subtitle {
+                font-size: 1.2rem;
+            }
+
+            .hero-card {
+                padding: 2rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <i class="fas fa-heart-pulse"></i>
+                AI Nurse Florence
+            </h1>
+            <p class="subtitle">Free Clinical Decision Support Tools</p>
+            <p class="tagline">Serving the healthcare community with evidence-based information</p>
+        </header>
+
+        <main>
+            <div class="hero-card">
+                <div style="text-align: center;">
+                    <div class="icon-circle">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                    <h2>Free Drug Interaction Checker</h2>
+                    <p class="hero-description">
+                        Check medication interactions instantly - No login required
+                    </p>
+                </div>
+
+                <div class="features">
+                    <div class="feature">
+                        <i class="fas fa-check-circle"></i>
+                        <p class="feature-title">Always Free</p>
+                        <p class="feature-text">No account needed</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-database"></i>
+                        <p class="feature-title">Comprehensive</p>
+                        <p class="feature-text">500+ medications</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-shield-alt"></i>
+                        <p class="feature-title">Private</p>
+                        <p class="feature-text">No data stored</p>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <a href="/drug-checker" class="cta-button">
+                        <i class="fas fa-arrow-right"></i>
+                        Start Checking Medications
+                    </a>
+                </div>
+            </div>
+
+            <div class="mission">
+                <h3>
+                    <i class="fas fa-heart"></i>
+                    Our Mission: Serving the Healthcare Community
+                </h3>
+                <p>
+                    When the NIH Drug Interaction API was discontinued, the healthcare community lost a valuable public resource.
+                    We're providing this free tool to help fill that gap and serve patients, caregivers, and healthcare consumers.
+                </p>
+                <p>
+                    AI Nurse Florence is a clinical decision support platform designed to help nurses work more efficiently
+                    and deliver better patient care. This free public tool is part of our commitment to serving the healthcare
+                    community and advancing accessible health technology.
+                </p>
+                <p style="margin-top: 1.5rem;">
+                    <a href="/static/dashboard.html" style="color: #2563EB; text-decoration: none; font-weight: 500;">
+                        <i class="fas fa-laptop-medical"></i>
+                        Access Clinical Wizards Dashboard (18 Workflows) →
+                    </a>
+                    <br>
+                    <a href="/app" style="color: #2563EB; text-decoration: none; font-weight: 500; margin-top: 0.5rem; display: inline-block;">
+                        <i class="fas fa-comments"></i>
+                        AI Chat Platform (Beta) →
+                    </a>
+                </p>
+            </div>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 AI Nurse Florence. Educational use only - not medical advice.</p>
+        <p style="font-size: 0.85rem;">Always consult your healthcare provider about your medications and health concerns.</p>
+    </footer>
+    <!-- Force deployment -->
+</body>
+</html>

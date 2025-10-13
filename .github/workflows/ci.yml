@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then python -m pip install -r requirements-dev.txt; fi
+          python -m pip install pre-commit ruff
+
+      - name: Run pre-commit hooks
+        run: |
+          pre-commit run --all-files || true
+
+      - name: Lint with ruff
+        run: |
+          python -m ruff check . || true
+
+      - name: Run tests
+        run: |
+          # CI healthcheck: ensure code does not require Redis when AI_NURSE_DISABLE_REDIS=1
+          # This will fail loudly if a change makes Redis mandatory or blocks when Redis is absent.
+          python scripts/check_redis_health.py
+
+          # Run quick critical tests first (fast feedback)
+          AI_NURSE_DISABLE_REDIS=1 python -m pytest -q tests/unit/test_rate_limit_precedence.py || true
+
+          # Then run the full test suite (disable Redis to prevent async hangs when Redis isn't provided)
+          AI_NURSE_DISABLE_REDIS=1 python -m pytest -q -ra
+
+      - name: OpenAPI operationId check
+        run: |
+          python scripts/check_openapi_operation_ids.py || true

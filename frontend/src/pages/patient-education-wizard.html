@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Education Document Generator - AI Nurse Florence</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .wizard-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">
+                <i class="fas fa-book-medical mr-3"></i>
+                AI Nurse Florence
+            </h1>
+            <p class="text-white text-lg">Patient Education Document Generator</p>
+        </div>
+
+        <!-- Wizard Container -->
+        <div id="patient-education-wizard" class="wizard-container"></div>
+
+
+        <!-- Footer -->
+        <div class="mt-12 text-center text-white text-sm">
+            <p>&copy; 2025 AI Nurse Florence</p>
+            <p class="mt-2">
+                <a href="/" class="hover:underline"><i class="fas fa-home mr-1"></i> Home</a> |
+                <a href="#" onclick="toggleHelpSystem(); return false;" class="hover:underline ml-4">
+                    <i class="fas fa-question-circle mr-1"></i> Help
+                </a>
+            </p>
+        </div>
+
+        <!-- Help System (floating button in bottom-right) -->
+        <div id="help-system-container"></div>
+    </div>
+
+    <!-- Include Autocomplete Component -->
+    <script src="/static/components/AutocompleteDropdown.js"></script>
+
+    <!-- Include Base Wizard -->
+    <script src="/static/components/wizards/BaseWizard.js"></script>
+
+    <!-- Include Patient Education Wizard -->
+    <script src="/static/components/wizards/PatientEducationWizard.js"></script>
+
+
+    <!-- Initialize Wizard -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const wizard = new PatientEducationWizard('patient-education-wizard');
+
+            // Check if there's a saved draft
+            if (wizard.loadDraft()) {
+                console.log('Loaded saved draft');
+            }
+        });
+    </script>
+</body>
+</html>

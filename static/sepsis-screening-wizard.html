@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sepsis Screening Wizard - AI Nurse Florence</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="/static/js/wizardPersistence.js"></script>
+    <script src="/static/js/careSettings.js"></script>
+    <script src="/static/js/documentationModule.js"></script>
+    <style>
+        .wizard-container {
+            max-width: 4xl;
+            margin: 0 auto;
+        }
+        .step-indicator {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .step-indicator.active {
+            background: #ef4444;
+            color: white;
+            transform: scale(1.1);
+        }
+        .step-indicator.completed {
+            background: #10b981;
+            color: white;
+        }
+        .step-indicator.pending {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+        .step-content {
+            display: none;
+        }
+        .step-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .sepsis-header {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        }
+        .form-field {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-left: 4px solid #ef4444;
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .message-success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-left: 4px solid #10b981;
+        }
+        .message-error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-left: 4px solid #ef4444;
+        }
+        .message-warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #f59e0b;
+        }
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: bold;
+            font-size: 1.125rem;
+        }
+        .score-badge.low {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .score-badge.high {
+            background: #fee2e2;
+            color: #991b1b;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .auto-calculator {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #f59e0b;
+        }
+        .intervention-checkbox {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .intervention-checkbox:checked {
+            background: #ef4444;
+            border-color: #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="sepsis-header text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                        <i class="fas fa-hospital text-2xl"></i>
+                        <div>
+                            <h1 class="text-xl font-bold">AI Nurse Florence</h1>
+                            <p class="text-red-200 text-sm">Sepsis Screening Wizard</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-exclamation-triangle text-red-200"></i>
+                        <span class="text-sm">Rapid Sepsis Assessment</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Information Banner -->
+    <div class="bg-red-50 border-l-4 border-red-400 p-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle text-red-400 mr-3"></i>
+                <div>
+                    <h3 class="text-sm font-medium text-red-800">Critical Sepsis Screening</h3>
+                    <p class="text-sm text-red-700">This wizard guides you through rapid sepsis screening using qSOFA score and SIRS criteria. Complete assessment within 1 hour for suspected infection.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="wizard-container bg-white rounded-lg shadow-xl">
+            <!-- Progress Bar -->
+            <div class="bg-gray-200 h-2 rounded-t-lg overflow-hidden">
+                <div id="progressBar" class="progress-bar bg-red-600 h-full" style="width: 25%"></div>
+            </div>
+
+            <!-- Wizard Header -->
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900" id="wizardTitle">Sepsis Screening Wizard</h2>
+                        <p class="text-gray-600 mt-1" id="wizardDescription">Complete rapid sepsis assessment with qSOFA and SIRS criteria</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">Step <span id="currentStepNum">1</span> of 5</div>
+                        <div class="text-lg font-semibold text-red-600" id="progressPercent">20%</div>
+                    </div>
+                </div>
+
+                <!-- Step Indicators -->
+                <div class="flex justify-between items-center mt-6">
+                    <div class="step-indicator active rounded-full w-10 h-10 flex items-center justify-center font-semibold" data-step="1" onclick="navigateToStep(1)">
+                        <span>1</span>
+                    </div>
+                    <div class="flex-1 h-1 bg-gray-300 mx-2"></div>
+                    <div class="step-indicator pending rounded-full w-10 h-10 flex items-center justify-center font-semibold" data-step="2" onclick="navigateToStep(2)">
+                        <span>2</span>
+                    </div>
+                    <div class="flex-1 h-1 bg-gray-300 mx-2"></div>
+                    <div class="step-indicator pending rounded-full w-10 h-10 flex items-center justify-center font-semibold" data-step="3" onclick="navigateToStep(3)">
+                        <span>3</span>
+                    </div>
+                    <div class="flex-1 h-1 bg-gray-300 mx-2"></div>
+                    <div class="step-indicator pending rounded-full w-10 h-10 flex items-center justify-center font-semibold" data-step="4" onclick="navigateToStep(4)">
+                        <span>4</span>
+                    </div>
+                    <div class="flex-1 h-1 bg-gray-300 mx-2"></div>
+                    <div class="step-indicator pending rounded-full w-10 h-10 flex items-center justify-center font-semibold" data-step="5" onclick="navigateToStep(5)">
+                        <span>5</span>
+                    </div>
+                </div>
+
+                <!-- Step Labels -->
+                <div class="flex justify-between items-center mt-2 text-xs text-gray-600">
+                    <div class="text-center w-20">Suspected Infection</div>
+                    <div class="flex-1"></div>
+                    <div class="text-center w-20">qSOFA Score</div>
+                    <div class="flex-1"></div>
+                    <div class="text-center w-20">SIRS Criteria</div>
+                    <div class="flex-1"></div>
+                    <div class="text-center w-20">Interventions</div>
+                    <div class="flex-1"></div>
+                    <div class="text-center w-20">Documentation</div>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="messagesArea" class="px-6 pt-4"></div>
+
+            <!-- Quick Fill Buttons -->
+            <div class="px-6 pt-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-magic text-blue-600 mr-3"></i>
+                            <div class="text-sm text-blue-800">
+                                <p class="font-semibold">Quick Fill Examples:</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="fillRespiratorySepsis()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-lungs mr-1"></i>Respiratory Sepsis
+                            </button>
+                            <button onclick="fillUrinarySepsis()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-droplet mr-1"></i>Urinary Sepsis
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Suspected Infection -->
+            <div id="step1" class="step-content active p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">
+                    <i class="fas fa-virus text-red-600 mr-2"></i>
+                    Suspected Infection
+                </h3>
+                <p class="text-gray-700 mb-4">Document presenting symptoms and suspected infection source.</p>
+
+                <!-- AI Assist Button -->
+                <div class="mb-6">
+                    <button id="aiAssistBtn" onclick="getAIAssist()" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 flex items-center gap-2">
+                        <i class="fas fa-robot"></i>
+                        <span>AI Assist - Get Suggestions</span>
+                        <i class="fas fa-sparkles"></i>
+                    </button>
+                    <p class="text-xs text-gray-500 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Click to get AI-powered suggestions based on patient context (powered by LangChain)
+                    </p>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Chief Complaint -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="chiefComplaint" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-comment-medical text-red-600 mr-2"></i>
+                            Chief Complaint / Symptoms <span class="text-red-500">*</span>
+                        </label>
+                        <textarea id="chiefComplaint"
+                                  rows="3"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                                  placeholder="e.g., Fever, chills, shortness of breath, confusion"
+                                  required></textarea>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Document all presenting symptoms suggesting infection
+                        </p>
+                    </div>
+
+                    <!-- Suspected Infection Source -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="infectionSource" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-crosshairs text-red-600 mr-2"></i>
+                            Suspected Infection Source <span class="text-red-500">*</span>
+                        </label>
+                        <select id="infectionSource"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                                required>
+                            <option value="">Select source...</option>
+                            <option value="respiratory">Respiratory (Pneumonia, Bronchitis)</option>
+                            <option value="urinary">Urinary Tract (UTI, Pyelonephritis)</option>
+                            <option value="abdominal">Abdominal (Peritonitis, Cholecystitis)</option>
+                            <option value="skin">Skin/Soft Tissue (Cellulitis, Abscess)</option>
+                            <option value="bloodstream">Bloodstream (Bacteremia, Fungemia)</option>
+                            <option value="central-line">Central Line Associated</option>
+                            <option value="surgical">Surgical Site</option>
+                            <option value="unknown">Unknown/Unclear</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Identify the most likely source of infection
+                        </p>
+                    </div>
+
+                    <!-- Onset Time -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="onsetTime" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-clock text-red-600 mr-2"></i>
+                            Symptom Onset Time <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text"
+                               id="onsetTime"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                               placeholder="e.g., 6 hours ago, Since yesterday, 2 days ago"
+                               required>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            When did symptoms begin?
+                        </p>
+                    </div>
+
+                    <!-- Risk Factors -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label class="block text-sm font-bold text-gray-800 mb-4">
+                            <i class="fas fa-shield-virus text-red-600 mr-2"></i>
+                            Risk Factors (Select all that apply)
+                        </label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-center cursor-pointer group bg-gray-50 p-3 rounded hover:bg-red-50">
+                                <input type="checkbox" class="intervention-checkbox mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" value="Immunocompromised">
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-red-600">
+                                    <i class="fas fa-shield-virus mr-1"></i>Immunocompromised
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer group bg-gray-50 p-3 rounded hover:bg-red-50">
+                                <input type="checkbox" class="intervention-checkbox mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" value="Recent Surgery">
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-red-600">
+                                    <i class="fas fa-scalpel mr-1"></i>Recent Surgery
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer group bg-gray-50 p-3 rounded hover:bg-red-50">
+                                <input type="checkbox" class="intervention-checkbox mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" value="Indwelling Devices">
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-red-600">
+                                    <i class="fas fa-syringe mr-1"></i>Indwelling Devices (Foley, Central Line, etc.)
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer group bg-gray-50 p-3 rounded hover:bg-red-50">
+                                <input type="checkbox" class="intervention-checkbox mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" value="Diabetes">
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-red-600">
+                                    <i class="fas fa-vial mr-1"></i>Diabetes
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer group bg-gray-50 p-3 rounded hover:bg-red-50">
+                                <input type="checkbox" class="intervention-checkbox mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" value="Chronic Illness">
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-red-600">
+                                    <i class="fas fa-notes-medical mr-1"></i>Chronic Illness (Renal, Hepatic, etc.)
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer group bg-gray-50 p-3 rounded hover:bg-red-50">
+                                <input type="checkbox" class="intervention-checkbox mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" value="Advanced Age">
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-red-600">
+                                    <i class="fas fa-user-clock mr-1"></i>Advanced Age (>65 years)
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer group bg-gray-50 p-3 rounded hover:bg-red-50">
+                                <input type="checkbox" class="intervention-checkbox mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" value="Recent Hospitalization">
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-red-600">
+                                    <i class="fas fa-hospital-user mr-1"></i>Recent Hospitalization
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer group bg-gray-50 p-3 rounded hover:bg-red-50">
+                                <input type="checkbox" class="intervention-checkbox mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" value="Antibiotic Use">
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-red-600">
+                                    <i class="fas fa-pills mr-1"></i>Recent Antibiotic Use
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: qSOFA Score -->
+            <div id="step2" class="step-content p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">
+                    <i class="fas fa-calculator text-red-600 mr-2"></i>
+                    qSOFA Score (Quick SOFA)
+                </h3>
+                <p class="text-gray-700 mb-6">Assess organ dysfunction using qSOFA criteria. Score ≥2 indicates high risk for sepsis.</p>
+
+                <div class="space-y-6">
+                    <!-- qSOFA Auto-Calculator -->
+                    <div class="auto-calculator rounded-lg p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-bold text-gray-900">
+                                <i class="fas fa-calculator mr-2"></i>
+                                qSOFA Score Calculator
+                            </h4>
+                            <div id="qsofaScoreDisplay" class="score-badge low">
+                                Score: <span id="qsofaScore">0</span>
+                            </div>
+                        </div>
+                        <div id="qsofaRiskInterpretation" class="text-sm text-gray-700 mb-4">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <span id="qsofaRiskText">Low risk - Score 0-1</span>
+                        </div>
+                    </div>
+
+                    <!-- Respiratory Rate -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="respiratoryRate" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-lungs text-red-600 mr-2"></i>
+                            Respiratory Rate <span class="text-red-500">*</span>
+                        </label>
+                        <select id="respiratoryRate"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                                onchange="calculateQSOFA()"
+                                required>
+                            <option value="">Select...</option>
+                            <option value="0">&lt;22 breaths/min (Normal)</option>
+                            <option value="1">≥22 breaths/min (Abnormal) - 1 point</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            1 point if ≥22 breaths per minute
+                        </p>
+                    </div>
+
+                    <!-- Altered Mental Status -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="mentalStatus" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-brain text-red-600 mr-2"></i>
+                            Altered Mental Status <span class="text-red-500">*</span>
+                        </label>
+                        <select id="mentalStatus"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                                onchange="calculateQSOFA()"
+                                required>
+                            <option value="">Select...</option>
+                            <option value="0">Normal (GCS 15, Alert & Oriented)</option>
+                            <option value="1">Altered (GCS &lt;15 or Confusion) - 1 point</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            1 point if GCS &lt;15 or patient is confused
+                        </p>
+                    </div>
+
+                    <!-- Systolic Blood Pressure -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="systolicBP" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-heart-pulse text-red-600 mr-2"></i>
+                            Systolic Blood Pressure <span class="text-red-500">*</span>
+                        </label>
+                        <select id="systolicBP"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                                onchange="calculateQSOFA()"
+                                required>
+                            <option value="">Select...</option>
+                            <option value="0">&gt;100 mmHg (Normal)</option>
+                            <option value="1">≤100 mmHg (Hypotensive) - 1 point</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            1 point if ≤100 mmHg
+                        </p>
+                    </div>
+
+                    <!-- qSOFA Clinical Significance -->
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+                        <h4 class="text-sm font-bold text-blue-900 mb-2">
+                            <i class="fas fa-lightbulb mr-1"></i>Clinical Significance
+                        </h4>
+                        <ul class="text-sm text-blue-800 space-y-1">
+                            <li><strong>Score 0-1:</strong> Low risk for sepsis-related mortality</li>
+                            <li><strong>Score 2-3:</strong> High risk - Consider sepsis diagnosis and immediate intervention</li>
+                            <li><strong>Action:</strong> qSOFA ≥2 requires urgent sepsis bundle initiation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: SIRS Criteria -->
+            <div id="step3" class="step-content p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">
+                    <i class="fas fa-fire text-red-600 mr-2"></i>
+                    SIRS Criteria (Systemic Inflammatory Response)
+                </h3>
+                <p class="text-gray-700 mb-6">Assess systemic inflammation. ≥2 criteria = SIRS positive.</p>
+
+                <div class="space-y-6">
+                    <!-- SIRS Counter -->
+                    <div class="auto-calculator rounded-lg p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-bold text-gray-900">
+                                <i class="fas fa-fire mr-2"></i>
+                                SIRS Criteria Count
+                            </h4>
+                            <div id="sirsScoreDisplay" class="score-badge low">
+                                Count: <span id="sirsScore">0</span>/4
+                            </div>
+                        </div>
+                        <div id="sirsInterpretation" class="text-sm text-gray-700 mb-4">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <span id="sirsText">SIRS Negative (≤1 criteria met)</span>
+                        </div>
+                    </div>
+
+                    <!-- Temperature -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="temperature" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-temperature-high text-red-600 mr-2"></i>
+                            Temperature <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex space-x-3">
+                            <input type="number"
+                                   id="temperature"
+                                   step="0.1"
+                                   class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                                   placeholder="e.g., 38.5"
+                                   oninput="calculateSIRS()"
+                                   required>
+                            <select id="tempUnit" class="px-4 py-3 border border-gray-300 rounded-lg text-sm" onchange="calculateSIRS()">
+                                <option value="C">°C</option>
+                                <option value="F">°F</option>
+                            </select>
+                        </div>
+                        <div id="tempStatus" class="text-xs mt-2 text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Abnormal: &gt;38°C (100.4°F) or &lt;36°C (96.8°F)
+                        </div>
+                    </div>
+
+                    <!-- Heart Rate -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="heartRate" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-heartbeat text-red-600 mr-2"></i>
+                            Heart Rate <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number"
+                               id="heartRate"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                               placeholder="e.g., 105"
+                               oninput="calculateSIRS()"
+                               required>
+                        <div id="hrStatus" class="text-xs mt-2 text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Abnormal: &gt;90 bpm
+                        </div>
+                    </div>
+
+                    <!-- Respiratory Rate for SIRS -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="sirsRespiratoryRate" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-lungs text-red-600 mr-2"></i>
+                            Respiratory Rate <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number"
+                               id="sirsRespiratoryRate"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                               placeholder="e.g., 24"
+                               oninput="calculateSIRS()"
+                               required>
+                        <div id="rrStatus" class="text-xs mt-2 text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Abnormal: &gt;20 breaths/min or PaCO2 &lt;32 mmHg
+                        </div>
+                    </div>
+
+                    <!-- WBC Count -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="wbc" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-vial text-red-600 mr-2"></i>
+                            White Blood Cell Count <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number"
+                               id="wbc"
+                               step="0.1"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                               placeholder="e.g., 15.2"
+                               oninput="calculateSIRS()"
+                               required>
+                        <div class="mt-3">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="bandsForms" class="mr-2 h-4 w-4 text-red-600 rounded" onchange="calculateSIRS()">
+                                <span class="text-sm text-gray-700">&gt;10% immature forms (bands)</span>
+                            </label>
+                        </div>
+                        <div id="wbcStatus" class="text-xs mt-2 text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Abnormal: &gt;12,000 cells/mm³ or &lt;4,000 cells/mm³ or &gt;10% bands
+                        </div>
+                    </div>
+
+                    <!-- SIRS Clinical Note -->
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                        <h4 class="text-sm font-bold text-yellow-900 mb-2">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>SIRS + Infection = Sepsis
+                        </h4>
+                        <p class="text-sm text-yellow-800">
+                            When ≥2 SIRS criteria are met in the presence of confirmed or suspected infection, the patient meets criteria for sepsis. Immediate intervention required.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Interventions & Review -->
+            <div id="step4" class="step-content p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">
+                    <i class="fas fa-notes-medical text-red-600 mr-2"></i>
+                    Sepsis Bundle & Interventions
+                </h3>
+                <p class="text-gray-700 mb-6">Complete sepsis bundle within 1 hour and document interventions.</p>
+
+                <div class="space-y-6">
+                    <!-- Assessment Summary -->
+                    <div class="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-600 rounded-lg p-6 shadow-sm">
+                        <h4 class="text-lg font-bold text-gray-900 mb-4">
+                            <i class="fas fa-clipboard-check text-red-600 mr-2"></i>
+                            Assessment Summary
+                        </h4>
+                        <div id="summaryContent" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Summary will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Sepsis Bundle Checklist -->
+                    <div class="bg-white border border-red-300 rounded-lg p-5 shadow-lg">
+                        <h4 class="text-lg font-bold text-gray-900 mb-4">
+                            <i class="fas fa-list-check text-red-600 mr-2"></i>
+                            Sepsis Bundle (Complete within 1 hour)
+                        </h4>
+                        <div class="space-y-3">
+                            <label class="flex items-start cursor-pointer group bg-gray-50 p-4 rounded-lg hover:bg-red-50 border-2 border-transparent hover:border-red-200">
+                                <input type="checkbox" class="intervention-checkbox mt-1 mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" id="bloodCultures">
+                                <div>
+                                    <span class="text-sm font-bold text-gray-800 group-hover:text-red-600">
+                                        <i class="fas fa-vial mr-1"></i>Blood Cultures (2 sets) Obtained
+                                    </span>
+                                    <p class="text-xs text-gray-600 mt-1">Draw before antibiotics if possible</p>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start cursor-pointer group bg-gray-50 p-4 rounded-lg hover:bg-red-50 border-2 border-transparent hover:border-red-200">
+                                <input type="checkbox" class="intervention-checkbox mt-1 mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" id="lactateLevel">
+                                <div>
+                                    <span class="text-sm font-bold text-gray-800 group-hover:text-red-600">
+                                        <i class="fas fa-flask mr-1"></i>Lactate Level Drawn
+                                    </span>
+                                    <p class="text-xs text-gray-600 mt-1">Initial lactate measurement</p>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start cursor-pointer group bg-gray-50 p-4 rounded-lg hover:bg-red-50 border-2 border-transparent hover:border-red-200">
+                                <input type="checkbox" class="intervention-checkbox mt-1 mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" id="antibiotics">
+                                <div>
+                                    <span class="text-sm font-bold text-gray-800 group-hover:text-red-600">
+                                        <i class="fas fa-pills mr-1"></i>Broad-Spectrum Antibiotics Ordered/Administered
+                                    </span>
+                                    <p class="text-xs text-gray-600 mt-1">Administer within 1 hour</p>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start cursor-pointer group bg-gray-50 p-4 rounded-lg hover:bg-red-50 border-2 border-transparent hover:border-red-200">
+                                <input type="checkbox" class="intervention-checkbox mt-1 mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" id="fluidBolus">
+                                <div>
+                                    <span class="text-sm font-bold text-gray-800 group-hover:text-red-600">
+                                        <i class="fas fa-syringe mr-1"></i>30 mL/kg Crystalloid Fluid Bolus
+                                    </span>
+                                    <p class="text-xs text-gray-600 mt-1">For hypotension or lactate ≥4 mmol/L</p>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start cursor-pointer group bg-gray-50 p-4 rounded-lg hover:bg-red-50 border-2 border-transparent hover:border-red-200">
+                                <input type="checkbox" class="intervention-checkbox mt-1 mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" id="vitalsReassessment">
+                                <div>
+                                    <span class="text-sm font-bold text-gray-800 group-hover:text-red-600">
+                                        <i class="fas fa-heartbeat mr-1"></i>Vitals Reassessment Time Scheduled
+                                    </span>
+                                    <p class="text-xs text-gray-600 mt-1">Frequent monitoring established</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Reassessment Time -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="reassessmentTime" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-clock text-red-600 mr-2"></i>
+                            Next Reassessment Time <span class="text-red-500">*</span>
+                        </label>
+                        <input type="datetime-local"
+                               id="reassessmentTime"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                               required>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Schedule frequent reassessment (typically every 15-30 minutes initially)
+                        </p>
+                    </div>
+
+                    <!-- Additional Clinical Notes -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="additionalNotes" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-comment-medical text-red-600 mr-2"></i>
+                            Additional Clinical Notes
+                        </label>
+                        <textarea id="additionalNotes"
+                                  rows="5"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                                  placeholder="Document physician notification, patient response, ICU consultation, etc."></textarea>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Include MD notification, orders received, and patient/family education
+                        </p>
+                    </div>
+
+                    <!-- Nurse Signature -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                        <label for="nurseSignature" class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-signature text-red-600 mr-2"></i>
+                            Nurse Signature <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text"
+                               id="nurseSignature"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                               placeholder="Enter your name to sign assessment"
+                               required>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            By entering your name, you certify the accuracy of this screening
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Documentation Preview & Submit -->
+            <div id="step5" class="step-content p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">
+                    <i class="fas fa-file-medical text-red-600 mr-2"></i>
+                    Preview & Submit Documentation
+                </h3>
+                <p class="text-gray-700 mb-6">Review the auto-generated SBAR documentation, edit if needed, and submit to patient record.</p>
+
+                <div class="space-y-6">
+                    <!-- Legal Documentation Notice -->
+                    <div class="bg-blue-50 border-l-4 border-blue-600 rounded-lg p-5 shadow-sm">
+                        <div class="flex items-start">
+                            <i class="fas fa-gavel text-blue-600 text-2xl mr-4 mt-1"></i>
+                            <div>
+                                <h4 class="text-lg font-bold text-blue-900 mb-2">Legal Documentation Requirement</h4>
+                                <p class="text-sm text-blue-800 mb-3">
+                                    Sepsis screening and interventions require formal documentation in the patient's medical record. This SBAR note will serve as legal documentation of your assessment and actions taken.
+                                </p>
+                                <div class="bg-blue-100 rounded p-3 text-xs text-blue-900">
+                                    <strong>📋 "If you didn't document it, it didn't happen"</strong><br>
+                                    This documentation meets Joint Commission standards and CDC Sepsis Core Elements requirements.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SBAR Preview Card -->
+                    <div class="bg-white border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden">
+                        <div class="bg-gradient-to-r from-red-600 to-orange-600 text-white px-6 py-4">
+                            <h4 class="text-xl font-bold flex items-center">
+                                <i class="fas fa-file-medical mr-3"></i>
+                                SBAR Clinical Documentation
+                            </h4>
+                            <p class="text-sm text-red-100 mt-1">Auto-generated from your assessment data</p>
+                        </div>
+
+                        <div id="sbarPreviewContainer" class="p-6 bg-gray-50">
+                            <div class="bg-white border border-gray-300 rounded-lg p-6 font-mono text-sm whitespace-pre-wrap" id="sbarPreviewText">
+                                <!-- SBAR will be populated here by JavaScript -->
+                                <div class="text-center text-gray-500 py-8">
+                                    <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
+                                    <p>Generating SBAR documentation...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Edit and Action Buttons -->
+                        <div class="bg-gray-100 px-6 py-4 border-t border-gray-300">
+                            <div class="flex justify-between items-center mb-4">
+                                <button onclick="editSBARNote()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                                    <i class="fas fa-edit"></i>
+                                    Edit Note
+                                </button>
+                                <div class="flex gap-3">
+                                    <button onclick="printSBAR()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2">
+                                        <i class="fas fa-print"></i>
+                                        Print
+                                    </button>
+                                    <button onclick="exportSBARToPDF()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
+                                        <i class="fas fa-file-pdf"></i>
+                                        PDF
+                                    </button>
+                                    <button onclick="copySBARToClipboard()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+                                        <i class="fas fa-copy"></i>
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Final Confirmation Checkbox -->
+                            <div class="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
+                                <label class="flex items-start cursor-pointer">
+                                    <input type="checkbox" id="documentationConfirmed" class="mt-1 mr-3 h-5 w-5 text-red-600 rounded focus:ring-2 focus:ring-red-500" required>
+                                    <div>
+                                        <span class="text-sm font-bold text-gray-900">
+                                            <i class="fas fa-check-square text-yellow-600 mr-2"></i>
+                                            I confirm this documentation is accurate and complete
+                                        </span>
+                                        <p class="text-xs text-gray-700 mt-1">
+                                            By checking this box, you certify that this SBAR note accurately reflects the patient assessment and interventions documented in this wizard. This will be submitted to the patient's medical record.
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documentation Metadata -->
+                    <div class="bg-gray-100 border border-gray-300 rounded-lg p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-600">Document ID:</span>
+                                <p class="font-mono font-semibold" id="docId">-</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Date/Time:</span>
+                                <p class="font-semibold" id="docTimestamp">-</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Nurse:</span>
+                                <p class="font-semibold" id="docNurse">-</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Care Setting:</span>
+                                <p class="font-semibold" id="docCareSetting">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="border-t border-gray-200 p-6 flex justify-between">
+                <button id="backBtn" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onclick="navigateBack()" disabled>
+                    <i class="fas fa-arrow-left mr-2"></i>Back
+                </button>
+                <button id="nextBtn" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors" onclick="navigateNext()">
+                    Next<i class="fas fa-arrow-right ml-2"></i>
+                </button>
+                <button id="finishBtn" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors hidden" onclick="finishWizard()">
+                    <i class="fas fa-check mr-2"></i>Complete Screening
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Wizard State
+        let wizardState = {
+            current_step: 1,
+            completed_steps: [],
+            total_steps: 5,
+            data: {
+                chiefComplaint: '',
+                infectionSource: '',
+                onsetTime: '',
+                riskFactors: [],
+                qsofaScore: 0,
+                respiratoryRate: '',
+                mentalStatus: '',
+                systolicBP: '',
+                sirsScore: 0,
+                temperature: '',
+                heartRate: '',
+                sirsRespiratoryRate: '',
+                wbc: '',
+                bundleItems: [],
+                reassessmentTime: '',
+                additionalNotes: '',
+                nurseSignature: ''
+            }
+        };
+
+        // Initialize wizard on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Sepsis Screening Wizard loaded');
+
+            // Initialize care setting framework
+            CareSettings.init({
+                showOnboardingIfNew: false,
+                injectBadge: true,
+                headerSelector: 'header'
+            });
+
+            // Set default reassessment time to 1 hour from now
+            const now = new Date();
+            now.setHours(now.getHours() + 1);
+            const timeString = now.toISOString().slice(0, 16);
+            document.getElementById('reassessmentTime').value = timeString;
+        });
+
+        // Calculate qSOFA Score
+        function calculateQSOFA() {
+            const rr = parseInt(document.getElementById('respiratoryRate').value) || 0;
+            const ms = parseInt(document.getElementById('mentalStatus').value) || 0;
+            const bp = parseInt(document.getElementById('systolicBP').value) || 0;
+
+            const score = rr + ms + bp;
+            wizardState.data.qsofaScore = score;
+
+            // Update display
+            document.getElementById('qsofaScore').textContent = score;
+            const scoreDisplay = document.getElementById('qsofaScoreDisplay');
+            const riskText = document.getElementById('qsofaRiskText');
+
+            if (score >= 2) {
+                scoreDisplay.className = 'score-badge high';
+                riskText.textContent = 'HIGH RISK - Consider sepsis! (Score 2-3)';
+                showMessage('error', 'qSOFA score ≥2 indicates high risk for sepsis. Initiate sepsis bundle immediately!');
+            } else {
+                scoreDisplay.className = 'score-badge low';
+                riskText.textContent = 'Low risk (Score 0-1)';
+            }
+        }
+
+        // Calculate SIRS Criteria
+        function calculateSIRS() {
+            let sirsCount = 0;
+
+            // Temperature
+            const temp = parseFloat(document.getElementById('temperature').value);
+            const tempUnit = document.getElementById('tempUnit').value;
+            const tempStatus = document.getElementById('tempStatus');
+            if (temp) {
+                const tempC = tempUnit === 'F' ? (temp - 32) * 5/9 : temp;
+                if (tempC > 38 || tempC < 36) {
+                    sirsCount++;
+                    tempStatus.innerHTML = '<i class="fas fa-check-circle text-red-600 mr-1"></i><strong>Abnormal</strong> - SIRS criterion met';
+                    tempStatus.className = 'text-xs mt-2 text-red-600 font-semibold';
+                } else {
+                    tempStatus.innerHTML = '<i class="fas fa-info-circle mr-1"></i>Normal temperature';
+                    tempStatus.className = 'text-xs mt-2 text-gray-500';
+                }
+            }
+
+            // Heart Rate
+            const hr = parseFloat(document.getElementById('heartRate').value);
+            const hrStatus = document.getElementById('hrStatus');
+            if (hr) {
+                if (hr > 90) {
+                    sirsCount++;
+                    hrStatus.innerHTML = '<i class="fas fa-check-circle text-red-600 mr-1"></i><strong>Abnormal</strong> - SIRS criterion met';
+                    hrStatus.className = 'text-xs mt-2 text-red-600 font-semibold';
+                } else {
+                    hrStatus.innerHTML = '<i class="fas fa-info-circle mr-1"></i>Normal heart rate';
+                    hrStatus.className = 'text-xs mt-2 text-gray-500';
+                }
+            }
+
+            // Respiratory Rate
+            const rr = parseFloat(document.getElementById('sirsRespiratoryRate').value);
+            const rrStatus = document.getElementById('rrStatus');
+            if (rr) {
+                if (rr > 20) {
+                    sirsCount++;
+                    rrStatus.innerHTML = '<i class="fas fa-check-circle text-red-600 mr-1"></i><strong>Abnormal</strong> - SIRS criterion met';
+                    rrStatus.className = 'text-xs mt-2 text-red-600 font-semibold';
+                } else {
+                    rrStatus.innerHTML = '<i class="fas fa-info-circle mr-1"></i>Normal respiratory rate';
+                    rrStatus.className = 'text-xs mt-2 text-gray-500';
+                }
+            }
+
+            // WBC
+            const wbc = parseFloat(document.getElementById('wbc').value);
+            const bands = document.getElementById('bandsForms').checked;
+            const wbcStatus = document.getElementById('wbcStatus');
+            if (wbc) {
+                if (wbc > 12 || wbc < 4 || bands) {
+                    sirsCount++;
+                    wbcStatus.innerHTML = '<i class="fas fa-check-circle text-red-600 mr-1"></i><strong>Abnormal</strong> - SIRS criterion met';
+                    wbcStatus.className = 'text-xs mt-2 text-red-600 font-semibold';
+                } else {
+                    wbcStatus.innerHTML = '<i class="fas fa-info-circle mr-1"></i>Normal WBC count';
+                    wbcStatus.className = 'text-xs mt-2 text-gray-500';
+                }
+            }
+
+            wizardState.data.sirsScore = sirsCount;
+
+            // Update display
+            document.getElementById('sirsScore').textContent = sirsCount;
+            const scoreDisplay = document.getElementById('sirsScoreDisplay');
+            const sirsText = document.getElementById('sirsText');
+
+            if (sirsCount >= 2) {
+                scoreDisplay.className = 'score-badge high';
+                sirsText.textContent = 'SIRS POSITIVE (≥2 criteria met) - SEPSIS if infection present!';
+                showMessage('error', 'SIRS criteria met (≥2). Combined with suspected infection, this indicates SEPSIS!');
+            } else {
+                scoreDisplay.className = 'score-badge low';
+                sirsText.textContent = 'SIRS Negative (≤1 criteria met)';
+            }
+        }
+
+        // Quick fill functions
+        function fillRespiratorySepsis() {
+            // Step 1
+            document.getElementById('chiefComplaint').value = 'Fever (39.2°C), productive cough, shortness of breath, confusion';
+            document.getElementById('infectionSource').value = 'respiratory';
+            document.getElementById('onsetTime').value = '2 days ago';
+
+            // Check risk factors
+            const riskFactors = ['Advanced Age', 'Recent Hospitalization'];
+            document.querySelectorAll('#step1 .intervention-checkbox').forEach(cb => {
+                if (riskFactors.includes(cb.value)) {
+                    cb.checked = true;
+                } else {
+                    cb.checked = false;
+                }
+            });
+
+            // Step 2 - qSOFA
+            document.getElementById('respiratoryRate').value = '1';
+            document.getElementById('mentalStatus').value = '1';
+            document.getElementById('systolicBP').value = '0';
+            calculateQSOFA();
+
+            // Step 3 - SIRS
+            document.getElementById('temperature').value = '39.2';
+            document.getElementById('tempUnit').value = 'C';
+            document.getElementById('heartRate').value = '105';
+            document.getElementById('sirsRespiratoryRate').value = '26';
+            document.getElementById('wbc').value = '15.2';
+            document.getElementById('bandsForms').checked = false;
+            calculateSIRS();
+
+            showMessage('success', 'Respiratory sepsis scenario populated');
+        }
+
+        function fillUrinarySepsis() {
+            // Step 1
+            document.getElementById('chiefComplaint').value = 'Fever, dysuria, flank pain, altered mental status';
+            document.getElementById('infectionSource').value = 'urinary';
+            document.getElementById('onsetTime').value = '24 hours ago';
+
+            // Check risk factors
+            const riskFactors = ['Indwelling Devices', 'Diabetes'];
+            document.querySelectorAll('#step1 .intervention-checkbox').forEach(cb => {
+                if (riskFactors.includes(cb.value)) {
+                    cb.checked = true;
+                } else {
+                    cb.checked = false;
+                }
+            });
+
+            // Step 2 - qSOFA
+            document.getElementById('respiratoryRate').value = '0';
+            document.getElementById('mentalStatus').value = '1';
+            document.getElementById('systolicBP').value = '1';
+            calculateQSOFA();
+
+            // Step 3 - SIRS
+            document.getElementById('temperature').value = '38.8';
+            document.getElementById('tempUnit').value = 'C';
+            document.getElementById('heartRate').value = '112';
+            document.getElementById('sirsRespiratoryRate').value = '22';
+            document.getElementById('wbc').value = '16.8';
+            document.getElementById('bandsForms').checked = true;
+            calculateSIRS();
+
+            showMessage('success', 'Urinary sepsis scenario populated');
+        }
+
+        // Navigate to specific step
+        function navigateToStep(stepNum) {
+            if (stepNum > wizardState.current_step && !wizardState.completed_steps.includes(stepNum - 1)) {
+                showMessage('warning', 'Please complete the current step before proceeding.');
+                return;
+            }
+
+            wizardState.current_step = stepNum;
+            updateWizardUI();
+
+            // Populate summary if on step 4
+            if (stepNum === 4) {
+                populateSummary();
+            }
+
+            // Generate SBAR if on step 5
+            if (stepNum === 5) {
+                generateAndDisplaySBAR();
+            }
+        }
+
+        // Navigate back
+        function navigateBack() {
+            if (wizardState.current_step <= 1) return;
+
+            wizardState.current_step--;
+            updateWizardUI();
+        }
+
+        // Navigate next
+        function navigateNext() {
+            // Collect current step data
+            collectCurrentStepData();
+
+            // Mark current step as completed
+            if (!wizardState.completed_steps.includes(wizardState.current_step)) {
+                wizardState.completed_steps.push(wizardState.current_step);
+            }
+
+            // Advance to next step
+            wizardState.current_step = Math.min(wizardState.current_step + 1, 5);
+
+            updateWizardUI();
+
+            // Populate summary if on step 4
+            if (wizardState.current_step === 4) {
+                populateSummary();
+            }
+
+            // Generate SBAR if on step 5
+            if (wizardState.current_step === 5) {
+                generateAndDisplaySBAR();
+            }
+        }
+
+        // Collect current step data
+        function collectCurrentStepData() {
+            switch (wizardState.current_step) {
+                case 1:
+                    wizardState.data.chiefComplaint = document.getElementById('chiefComplaint').value;
+                    wizardState.data.infectionSource = document.getElementById('infectionSource').value;
+                    wizardState.data.onsetTime = document.getElementById('onsetTime').value;
+
+                    const riskFactors = [];
+                    document.querySelectorAll('#step1 .intervention-checkbox:checked').forEach(cb => {
+                        riskFactors.push(cb.value);
+                    });
+                    wizardState.data.riskFactors = riskFactors;
+                    break;
+
+                case 2:
+                    wizardState.data.respiratoryRate = document.getElementById('respiratoryRate').value;
+                    wizardState.data.mentalStatus = document.getElementById('mentalStatus').value;
+                    wizardState.data.systolicBP = document.getElementById('systolicBP').value;
+                    break;
+
+                case 3:
+                    wizardState.data.temperature = document.getElementById('temperature').value;
+                    wizardState.data.heartRate = document.getElementById('heartRate').value;
+                    wizardState.data.sirsRespiratoryRate = document.getElementById('sirsRespiratoryRate').value;
+                    wizardState.data.wbc = document.getElementById('wbc').value;
+                    break;
+
+                case 4:
+                    const bundleItems = [];
+                    document.querySelectorAll('#step4 .intervention-checkbox:checked').forEach(cb => {
+                        bundleItems.push(cb.id);
+                    });
+                    wizardState.data.bundleItems = bundleItems;
+                    wizardState.data.reassessmentTime = document.getElementById('reassessmentTime').value;
+                    wizardState.data.additionalNotes = document.getElementById('additionalNotes').value;
+                    wizardState.data.nurseSignature = document.getElementById('nurseSignature').value;
+                    break;
+            }
+        }
+
+        // Update wizard UI
+        function updateWizardUI() {
+            const currentStep = wizardState.current_step;
+            const progressPercent = Math.floor((currentStep / 5) * 100);
+
+            // Update progress
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+            document.getElementById('progressPercent').textContent = `${progressPercent}%`;
+            document.getElementById('currentStepNum').textContent = currentStep;
+
+            // Update step indicators
+            document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+                const stepNum = index + 1;
+                indicator.classList.remove('active', 'completed', 'pending');
+
+                if (stepNum === currentStep) {
+                    indicator.classList.add('active');
+                } else if (wizardState.completed_steps.includes(stepNum)) {
+                    indicator.classList.add('completed');
+                } else {
+                    indicator.classList.add('pending');
+                }
+            });
+
+            // Show/hide step content
+            document.querySelectorAll('.step-content').forEach((content, index) => {
+                content.classList.remove('active');
+                if (index + 1 === currentStep) {
+                    content.classList.add('active');
+                }
+            });
+
+            // Update navigation buttons
+            const backBtn = document.getElementById('backBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const finishBtn = document.getElementById('finishBtn');
+
+            backBtn.disabled = currentStep === 1;
+
+            if (currentStep === 5) {
+                nextBtn.classList.add('hidden');
+                finishBtn.classList.remove('hidden');
+            } else {
+                nextBtn.classList.remove('hidden');
+                finishBtn.classList.add('hidden');
+            }
+        }
+
+        // Populate summary
+        function populateSummary() {
+            const data = wizardState.data;
+            const summaryContent = document.getElementById('summaryContent');
+
+            const infectionSourceMap = {
+                'respiratory': 'Respiratory',
+                'urinary': 'Urinary Tract',
+                'abdominal': 'Abdominal',
+                'skin': 'Skin/Soft Tissue',
+                'bloodstream': 'Bloodstream',
+                'central-line': 'Central Line',
+                'surgical': 'Surgical Site',
+                'unknown': 'Unknown',
+                'other': 'Other'
+            };
+
+            summaryContent.innerHTML = `
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-calculator text-red-600 mr-2"></i>
+                        <span class="text-sm font-semibold text-gray-700">qSOFA Score</span>
+                    </div>
+                    <div class="text-3xl font-bold ${data.qsofaScore >= 2 ? 'text-red-600' : 'text-green-600'}">${data.qsofaScore}/3</div>
+                    <div class="text-xs ${data.qsofaScore >= 2 ? 'text-red-600' : 'text-green-600'} mt-1">
+                        ${data.qsofaScore >= 2 ? 'HIGH RISK' : 'Low Risk'}
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-fire text-red-600 mr-2"></i>
+                        <span class="text-sm font-semibold text-gray-700">SIRS Criteria</span>
+                    </div>
+                    <div class="text-3xl font-bold ${data.sirsScore >= 2 ? 'text-red-600' : 'text-green-600'}">${data.sirsScore}/4</div>
+                    <div class="text-xs ${data.sirsScore >= 2 ? 'text-red-600' : 'text-green-600'} mt-1">
+                        ${data.sirsScore >= 2 ? 'SIRS POSITIVE' : 'SIRS Negative'}
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-crosshairs text-red-600 mr-2"></i>
+                        <span class="text-sm font-semibold text-gray-700">Infection Source</span>
+                    </div>
+                    <div class="text-sm text-gray-900">${infectionSourceMap[data.infectionSource] || 'Not specified'}</div>
+                </div>
+
+                ${data.riskFactors.length > 0 ? `
+                <div class="bg-white rounded-lg p-4 shadow-sm md:col-span-3">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-shield-virus text-red-600 mr-2"></i>
+                        <span class="text-sm font-semibold text-gray-700">Risk Factors</span>
+                    </div>
+                    <div class="text-sm text-gray-900">${data.riskFactors.join(', ')}</div>
+                </div>
+                ` : ''}
+
+                ${data.qsofaScore >= 2 || data.sirsScore >= 2 ? `
+                <div class="bg-red-100 border-2 border-red-600 rounded-lg p-4 shadow-sm md:col-span-3">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-2xl mr-3"></i>
+                        <div>
+                            <div class="text-lg font-bold text-red-900">SEPSIS SUSPECTED</div>
+                            <div class="text-sm text-red-800 mt-1">Immediate sepsis bundle initiation required</div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+        }
+
+        // Finish wizard
+        function finishWizard() {
+            collectCurrentStepData();
+
+            // Validate required fields
+            if (!wizardState.data.nurseSignature) {
+                showMessage('error', 'Please provide your signature to complete the screening.');
+                return;
+            }
+
+            // Validate documentation confirmation
+            const docConfirmed = document.getElementById('documentationConfirmed').checked;
+            if (!docConfirmed) {
+                showMessage('error', 'Please confirm the documentation is accurate before submitting.');
+                return;
+            }
+
+            showMessage('success', 'Sepsis screening and documentation completed successfully!');
+
+            // In production, this would save to the database and EHR
+            console.log('Sepsis Screening Data:', wizardState.data);
+            console.log('SBAR Documentation:', window.currentSBARData);
+
+            // Show completion message
+            setTimeout(() => {
+                const bundleComplete = wizardState.data.bundleItems.length;
+                const bundleTotal = 5;
+                const docId = document.getElementById('docId').textContent;
+                alert(`Sepsis screening documented successfully!\n\nScreening ID: SS-${Date.now()}\nDocument ID: ${docId}\nNurse: ${wizardState.data.nurseSignature}\nqSOFA Score: ${wizardState.data.qsofaScore}/3\nSIRS Count: ${wizardState.data.sirsScore}/4\nBundle Items Completed: ${bundleComplete}/${bundleTotal}\n\nSBAR note has been submitted to patient medical record.`);
+
+                // Clear wizard persistence on successful completion
+                WizardPersistence.clearWizardState(WIZARD_ID);
+
+                // Optionally redirect to dashboard
+                // window.location.href = '/static/dashboard.html';
+            }, 500);
+        }
+
+        // Show message
+        function showMessage(type, text) {
+            const messagesArea = document.getElementById('messagesArea');
+            const messageClass = `message-${type}`;
+            const icon = type === 'error' ? 'fa-times-circle' :
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        'fa-check-circle';
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `${messageClass} p-4 rounded-lg mb-2`;
+            messageDiv.innerHTML = `
+                <div class="flex items-start">
+                    <i class="fas ${icon} mr-3 mt-0.5"></i>
+                    <div class="flex-1">
+                        <span>${text}</span>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-3 text-gray-600 hover:text-gray-800 flex-shrink-0">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            messagesArea.appendChild(messageDiv);
+
+            // Auto-remove success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => messageDiv.remove(), 5000);
+            }
+        }
+
+        // ===== PERSISTENCE FUNCTIONS =====
+
+        const WIZARD_ID = 'sepsis-screening-wizard';
+
+        // Check for saved draft on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            if (WizardPersistence.hasSavedDraft(WIZARD_ID)) {
+                WizardPersistence.showResumeDraftModal(
+                    WIZARD_ID,
+                    () => resumeDraft(),
+                    () => console.log('Starting fresh')
+                );
+            }
+        });
+
+        // Auto-save draft
+        function autosaveDraft() {
+            const formData = {};
+            const currentStepNum = wizardState.current_step;
+
+            // Collect data from all steps
+            document.querySelectorAll('.step-content').forEach((step, index) => {
+                const stepNum = index + 1;
+                const stepData = {};
+
+                step.querySelectorAll('input, select, textarea').forEach(input => {
+                    if (input.id) {
+                        if (input.type === 'checkbox') {
+                            stepData[input.id] = input.checked;
+                        } else if (input.type === 'radio') {
+                            if (input.checked) {
+                                stepData[input.name] = input.value;
+                            }
+                        } else {
+                            stepData[input.id] = input.value;
+                        }
+                    }
+                });
+
+                if (Object.keys(stepData).length > 0) {
+                    formData[`step${stepNum}`] = stepData;
+                }
+            });
+
+            WizardPersistence.saveWizardState(WIZARD_ID, currentStepNum, formData);
+        }
+
+        // Resume draft
+        function resumeDraft() {
+            const savedState = WizardPersistence.loadWizardState(WIZARD_ID);
+            if (!savedState) return;
+
+            // Restore to saved step
+            const targetStep = savedState.currentStep;
+
+            // Restore form data
+            if (savedState.formData) {
+                Object.keys(savedState.formData).forEach(stepKey => {
+                    const stepData = savedState.formData[stepKey];
+                    Object.keys(stepData).forEach(fieldId => {
+                        const input = document.getElementById(fieldId);
+                        if (input) {
+                            if (input.type === 'checkbox') {
+                                input.checked = stepData[fieldId];
+                            } else if (input.type === 'radio') {
+                                const radio = document.querySelector(`input[name="${fieldId}"][value="${stepData[fieldId]}"]`);
+                                if (radio) radio.checked = true;
+                            } else {
+                                input.value = stepData[fieldId];
+                            }
+                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    });
+                });
+            }
+
+            // Recalculate scores
+            calculateQSOFA();
+            calculateSIRS();
+
+            // Navigate to saved step
+            wizardState.current_step = targetStep;
+            wizardState.completed_steps = [];
+            for (let i = 1; i < targetStep; i++) {
+                wizardState.completed_steps.push(i);
+            }
+            updateWizardUI();
+
+            const lastSave = WizardPersistence.getLastSaveTime(WIZARD_ID);
+            alert(`Draft restored from ${lastSave}`);
+        }
+
+        // Clear draft on completion
+        const originalFinishWizard = finishWizard;
+        finishWizard = function() {
+            WizardPersistence.clearWizardState(WIZARD_ID);
+            originalFinishWizard();
+        };
+
+        // Auto-save on navigation
+        const originalNavigateNext = navigateNext;
+        navigateNext = function() {
+            autosaveDraft();
+            originalNavigateNext();
+        };
+
+        // ===== LANGCHAIN AI ASSIST FUNCTIONS =====
+
+        async function getAIAssist() {
+            const btn = document.getElementById('aiAssistBtn');
+            const originalHTML = btn.innerHTML;
+
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting AI suggestions...';
+
+            try {
+                // Gather patient context (in production, this would come from EHR)
+                const patientContext = {
+                    age: 65,
+                    gender: 'Male',
+                    chief_complaint: document.getElementById('chiefComplaint')?.value || 'Not provided',
+                    medical_history: ['Diabetes', 'Hypertension'],
+                    medications: ['Metformin', 'Lisinopril'],
+                    allergies: ['Penicillin']
+                };
+
+                // Get current vitals (mock data - in production would come from monitors)
+                const currentVitals = {
+                    temperature: 38.5,
+                    heart_rate: 110,
+                    respiratory_rate: 24,
+                    blood_pressure: '95/60',
+                    spo2: 92
+                };
+
+                // Recent labs (mock data)
+                const recentLabs = {
+                    wbc: 15000,
+                    lactate: 2.5,
+                    creatinine: 1.5
+                };
+
+                // Call LangChain API
+                const response = await fetch('/api/v1/wizard-ai/sepsis/suggest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        patient_context: patientContext,
+                        current_vitals: currentVitals,
+                        recent_labs: recentLabs
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.suggestions) {
+                    // Apply AI suggestions to the form
+                    applyAISuggestions(data.suggestions);
+
+                    // Show success message
+                    showAIMessage('success', 'AI suggestions applied successfully! Review and adjust as needed.');
+                } else {
+                    throw new Error('Invalid response format');
+                }
+
+            } catch (error) {
+                console.error('AI Assist error:', error);
+                showAIMessage('error', `AI assist unavailable: ${error.message}. Please complete assessment manually.`);
+            } finally {
+                // Restore button
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        function applyAISuggestions(suggestions) {
+            // Apply infection source suggestion
+            if (suggestions.suspected_infection_source) {
+                const sourceSelect = document.getElementById('infectionSource');
+                const sourceOptions = Array.from(sourceSelect.options);
+                const matchingOption = sourceOptions.find(opt =>
+                    opt.text.toLowerCase().includes(suggestions.suspected_infection_source.toLowerCase())
+                );
+                if (matchingOption) {
+                    sourceSelect.value = matchingOption.value;
+                }
+            }
+
+            // Check risk factors based on AI suggestions
+            if (suggestions.risk_factors_present && Array.isArray(suggestions.risk_factors_present)) {
+                suggestions.risk_factors_present.forEach(riskFactor => {
+                    const checkbox = document.querySelector(`input[type="checkbox"][value*="${riskFactor}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+
+            // Pre-fill qSOFA predictions
+            if (suggestions.qsofa_prediction) {
+                if (suggestions.qsofa_prediction.respiratory_rate !== undefined) {
+                    const rrSelect = document.getElementById('qsofaRR');
+                    if (rrSelect) {
+                        rrSelect.value = suggestions.qsofa_prediction.respiratory_rate > 0 ? 'gte22' : 'lt22';
+                    }
+                }
+                if (suggestions.qsofa_prediction.mental_status !== undefined) {
+                    const msSelect = document.getElementById('qsofaMentalStatus');
+                    if (msSelect) {
+                        msSelect.value = suggestions.qsofa_prediction.mental_status > 0 ? 'altered' : 'normal';
+                    }
+                }
+                if (suggestions.qsofa_prediction.systolic_bp !== undefined) {
+                    const bpSelect = document.getElementById('qsofaBP');
+                    if (bpSelect) {
+                        bpSelect.value = suggestions.qsofa_prediction.systolic_bp > 0 ? 'lte100' : 'gt100';
+                    }
+                }
+            }
+
+            // Show clinical reasoning in an info box
+            if (suggestions.clinical_reasoning) {
+                showAIReasoning(suggestions.clinical_reasoning);
+            }
+
+            // Highlight recommended interventions
+            if (suggestions.recommended_interventions && Array.isArray(suggestions.recommended_interventions)) {
+                highlightInterventions(suggestions.recommended_interventions);
+            }
+
+            // Trigger any calculators to update
+            if (typeof calculateQSOFA === 'function') {
+                calculateQSOFA();
+            }
+        }
+
+        // ===== STEP 5 DOCUMENTATION FUNCTIONS =====
+
+        // Generate and display SBAR note
+        function generateAndDisplaySBAR() {
+            // Collect all wizard data
+            const data = wizardState.data;
+
+            // Get infection source text
+            const infectionSourceMap = {
+                'respiratory': 'Respiratory (Pneumonia)',
+                'urinary': 'Urinary Tract',
+                'abdominal': 'Abdominal',
+                'skin': 'Skin/Soft Tissue',
+                'bloodstream': 'Bloodstream',
+                'central-line': 'Central Line Associated',
+                'surgical': 'Surgical Site',
+                'unknown': 'Unknown',
+                'other': 'Other'
+            };
+
+            // Prepare wizard data for DocumentationModule
+            const wizardData = {
+                patientAge: 65, // Would come from EHR in production
+                patientGender: 'M',
+                patientName: 'Patient',
+                chiefComplaint: data.chiefComplaint || 'Not documented',
+                infectionSource: infectionSourceMap[data.infectionSource] || 'Not specified',
+                infectionSourceRaw: data.infectionSource,
+                onsetTime: data.onsetTime || 'Unknown',
+                riskFactors: data.riskFactors || [],
+                qsofaScore: data.qsofaScore || 0,
+                qsofaComponents: {
+                    respiratoryRate: data.respiratoryRate,
+                    mentalStatus: data.mentalStatus,
+                    systolicBP: data.systolicBP
+                },
+                sirsScore: data.sirsScore || 0,
+                sirsComponents: {
+                    temperature: data.temperature,
+                    heartRate: data.heartRate,
+                    respiratoryRate: data.sirsRespiratoryRate,
+                    wbc: data.wbc
+                },
+                vitalSigns: {
+                    temperature: data.temperature,
+                    heartRate: data.heartRate,
+                    respiratoryRate: data.sirsRespiratoryRate,
+                    bloodPressure: data.systolicBP === '1' ? '≤100 mmHg' : '>100 mmHg'
+                },
+                labs: {
+                    wbc: data.wbc
+                },
+                interventions: data.bundleItems || [],
+                additionalNotes: data.additionalNotes || '',
+                reassessmentTime: data.reassessmentTime || '',
+                nurseSignature: data.nurseSignature || '',
+                providerNotified: data.additionalNotes.toLowerCase().includes('md') ||
+                                 data.additionalNotes.toLowerCase().includes('physician') ||
+                                 data.additionalNotes.toLowerCase().includes('provider')
+            };
+
+            // Generate SBAR using DocumentationModule
+            const sbarData = DocumentationModule.generateSBAR(wizardData, 'sepsis');
+
+            // Store globally for later reference
+            window.currentSBARData = sbarData;
+
+            // Format and display
+            const formattedSBAR = DocumentationModule.formatSBARForDisplay(sbarData);
+            document.getElementById('sbarPreviewText').textContent = formattedSBAR;
+
+            // Update metadata
+            document.getElementById('docId').textContent = sbarData.metadata.documentId;
+            document.getElementById('docTimestamp').textContent = sbarData.metadata.timestampFormatted;
+            document.getElementById('docNurse').textContent = sbarData.metadata.nurse;
+
+            // Get care setting if available
+            const careSetting = CareSettings.getCurrentSetting();
+            const careSettingName = CareSettings.SETTINGS[careSetting]?.name || 'Not specified';
+            document.getElementById('docCareSetting').textContent = careSettingName;
+        }
+
+        // Edit SBAR note
+        function editSBARNote() {
+            const previewText = document.getElementById('sbarPreviewText');
+            const isEditing = previewText.contentEditable === 'true';
+
+            if (isEditing) {
+                // Save edits
+                previewText.contentEditable = 'false';
+                previewText.classList.remove('bg-yellow-50', 'border-2', 'border-yellow-400');
+                showMessage('success', 'Edits saved. Review the updated documentation before submitting.');
+            } else {
+                // Enable editing
+                previewText.contentEditable = 'true';
+                previewText.classList.add('bg-yellow-50', 'border-2', 'border-yellow-400');
+                previewText.focus();
+                showMessage('warning', 'Editing mode enabled. Modify the text as needed, then click "Edit Note" again to save.');
+            }
+        }
+
+        // Print SBAR
+        function printSBAR() {
+            const sbarText = document.getElementById('sbarPreviewText').textContent;
+            DocumentationModule.printChartCopy(sbarText);
+        }
+
+        // Export SBAR to PDF (simplified - just downloads as text)
+        function exportSBARToPDF() {
+            const sbarText = document.getElementById('sbarPreviewText').textContent;
+            const metadata = window.currentSBARData?.metadata || {};
+            DocumentationModule.exportToPDF(sbarText, metadata);
+        }
+
+        // Copy SBAR to clipboard
+        function copySBARToClipboard() {
+            const sbarText = document.getElementById('sbarPreviewText').textContent;
+            DocumentationModule.copyToClipboard(sbarText);
+            showMessage('success', 'SBAR documentation copied to clipboard');
+        }
+
+        function showAIMessage(type, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-${type} p-4 rounded-lg mb-4`;
+            messageDiv.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} text-lg mt-0.5"></i>
+                    <div>
+                        <strong>${type === 'success' ? 'AI Suggestions Applied' : 'AI Assist Error'}</strong>
+                        <p class="text-sm mt-1">${message}</p>
+                    </div>
+                </div>
+            `;
+
+            // Insert after AI button
+            const aiButtonDiv = document.getElementById('aiAssistBtn').parentElement;
+            aiButtonDiv.insertAdjacentElement('afterend', messageDiv);
+
+            // Auto-remove after 10 seconds
+            setTimeout(() => messageDiv.remove(), 10000);
+        }
+
+        function showAIReasoning(reasoning) {
+            const reasoningDiv = document.createElement('div');
+            reasoningDiv.className = 'bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-lg mb-4';
+            reasoningDiv.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-brain text-indigo-600 text-lg mt-0.5"></i>
+                    <div>
+                        <strong class="text-indigo-900">AI Clinical Reasoning:</strong>
+                        <p class="text-sm text-indigo-800 mt-1">${reasoning}</p>
+                    </div>
+                </div>
+            `;
+
+            // Insert at top of form
+            const step1 = document.getElementById('step1');
+            const firstFormField = step1.querySelector('.space-y-6');
+            firstFormField.insertAdjacentElement('beforebegin', reasoningDiv);
+        }
+
+        function highlightInterventions(interventions) {
+            // Store for display in Step 4
+            window.aiRecommendedInterventions = interventions;
+
+            // Show preview banner
+            const banner = document.createElement('div');
+            banner.className = 'bg-green-50 border border-green-200 p-3 rounded-lg mb-4';
+            banner.innerHTML = `
+                <strong class="text-green-900">
+                    <i class="fas fa-lightbulb text-green-600 mr-2"></i>
+                    ${interventions.length} AI-recommended interventions will be highlighted in Step 4
+                </strong>
+            `;
+
+            const step1 = document.getElementById('step1');
+            step1.querySelector('.space-y-6').insertAdjacentElement('beforebegin', banner);
+        }
+    </script>
+</body>
+</html>
