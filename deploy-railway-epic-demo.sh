@@ -66,7 +66,7 @@ if [ "$PROJECT_OPTION" == "1" ]; then
     echo ""
     echo "⚠️  This will open your browser for GitHub authentication"
     echo "    Please select:"
-    echo "    - Repository: silversurfer562/ai-nurse-florence"
+    echo "    - Repository: Deep-Study-AI/ai-nurse-florence"
     echo "    - Branch: epic-integration-demo"
     echo ""
     read -p "Press ENTER to continue..."

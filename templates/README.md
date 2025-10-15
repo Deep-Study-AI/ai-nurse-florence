@@ -345,8 +345,8 @@ Found a bug or have an improvement?
 
 **Questions about templates?**
 - Read: [TEMPLATE_GUIDE.md](./TEMPLATE_GUIDE.md) (comprehensive guide)
-- Email: patrickroebuck@pm.me
-- Issues: [GitHub Issues](https://github.com/silversurfer562/ai-nurse-florence/issues)
+- Email: patrick.roebuck@deepstudyai.com
+- Issues: [GitHub Issues](https://github.com/Deep-Study-AI/ai-nurse-florence/issues)
 
 **Need help implementing?**
 - See: [DOCUMENTATION_CONSTELLATION_IMPLEMENTATION.md](../DOCUMENTATION_CONSTELLATION_IMPLEMENTATION.md)

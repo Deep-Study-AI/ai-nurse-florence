@@ -471,7 +471,7 @@ export default function Settings() {
             Help Center
           </button>
           <a
-            href="https://github.com/anthropics/ai-nurse-florence"
+            href="https://github.com/Deep-Study-AI/ai-nurse-florence"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary text-sm inline-flex items-center"

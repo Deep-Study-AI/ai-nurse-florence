@@ -4,7 +4,7 @@
 **License**: Apache License 2.0
 **Copyright**: © 2025 Deep Study AI, LLC
 **Project**: AI Nurse Florence
-**Repository**: https://github.com/silversurfer562/ai-nurse-florence
+**Repository**: https://github.com/Deep-Study-AI/ai-nurse-florence
 ---
 
 This directory contains working code examples from the AI Nurse Florence tutorials.

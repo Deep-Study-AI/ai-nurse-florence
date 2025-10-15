@@ -43,5 +43,5 @@ Older or superseded docs have been moved to `docs/archive/20250928/` for review 
 ## Support
 
 For support, please contact:
-- Email: support@florence-ai.org
-- GitHub Issues: [Report a bug](https://github.com/silversurfer562/ai-nurse-florence/issues/new)
+- Email: patrick.roebuck@deepstudyai.com
+- GitHub Issues: [Report a bug](https://github.com/Deep-Study-AI/ai-nurse-florence/issues/new)

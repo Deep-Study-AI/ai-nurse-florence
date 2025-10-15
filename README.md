@@ -241,7 +241,7 @@ AI Nurse Florence is a public benefit technology initiative that improves health
 ### 💖 How to Support
 - ⭐ **Star this repository** to show your support
 - 🐛 **Report bugs** and suggest features
-- 💰 **Financial support** via [GitHub Sponsors](https://github.com/sponsors/silversurfer562)
+- 💰 **Financial support** via [GitHub Sponsors](https://github.com/sponsors/Deep-Study-AI)
 - 🤝 **Contribute code** - see [CONTRIBUTING.md](CONTRIBUTING.md)
 - 📢 **Share** with healthcare networks and colleagues
 

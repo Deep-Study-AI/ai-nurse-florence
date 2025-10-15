@@ -41,7 +41,7 @@ Deep Study AI, LLC is committed to advancing healthcare accessibility and qualit
 
 1. **Fork the Repository**
    ```bash
-   git fork https://github.com/silversurfer562/ai-nurse-florence.git
+   git fork https://github.com/Deep-Study-AI/ai-nurse-florence.git
    cd ai-nurse-florence
    ```
 
