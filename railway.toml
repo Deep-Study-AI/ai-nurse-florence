@@ -5,6 +5,8 @@ dockerfilePath = "Dockerfile"
 [deploy]
 restartPolicyType = "on_failure"
 startCommand = "/app/start-railway.sh"
+healthcheckPath = "/api/v1/health/"
+healthcheckTimeout = 300
 
 # Persistent volume for drug database
 # Database persists across deployments and is only rebuilt:
