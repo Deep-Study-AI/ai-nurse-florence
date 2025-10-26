@@ -106,7 +106,7 @@ class Settings(BaseSettings):
         default=None, description="Anthropic API key from environment variable"
     )
     ANTHROPIC_MODEL: str = Field(
-        default="claude-3-5-sonnet-20241022",
+        default="claude-3-5-sonnet-20240620",
         description="Default Anthropic Claude model (claude-3-5-sonnet for best quality)",
     )
     AI_PROVIDER: str = Field(
