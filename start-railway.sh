@@ -32,7 +32,17 @@ elif [ $(find "$DB_PATH" -mtime +$DB_AGE_DAYS 2>/dev/null | wc -l) -gt 0 ]; then
     echo "========================================="
     python3 scripts/build_drug_database.py --max-records 25000 || echo "Warning: Drug database build failed, will use FDA API fallback"
 else
-    DB_AGE=$((($(date +%s) - $(stat -f %m "$DB_PATH" 2>/dev/null || stat -c %Y "$DB_PATH")) / 86400))
+    # Get database modification time (handle both macOS and Linux)
+    if DB_MTIME=$(stat -c %Y "$DB_PATH" 2>/dev/null); then
+        # Linux stat syntax
+        DB_AGE=$((($(date +%s) - DB_MTIME) / 86400))
+    elif DB_MTIME=$(stat -f %m "$DB_PATH" 2>/dev/null); then
+        # macOS stat syntax
+        DB_AGE=$((($(date +%s) - DB_MTIME) / 86400))
+    else
+        # Fallback if stat fails
+        DB_AGE=0
+    fi
     echo "========================================="
     echo "Drug database found at $DB_PATH (${DB_AGE} days old)"
     echo "Skipping rebuild (database is fresh)"
